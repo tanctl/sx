@@ -1,0 +1,4 @@
+(library
+ (public_name sx.parsers)
+ (name parsers)
+ (libraries sx yojson))

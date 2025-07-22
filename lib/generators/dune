@@ -1,0 +1,4 @@
+(library
+ (public_name sx.generators)
+ (name generators)
+ (libraries sx))

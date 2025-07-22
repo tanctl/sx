@@ -1,0 +1,10 @@
+{
+  "name": "lua",
+  "age": 4,
+  "active": true,
+  "address": {
+    "street": "catstreet",
+    "city": "cattown"
+  },
+  "notes": null
+}

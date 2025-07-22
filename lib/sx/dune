@@ -1,3 +1,4 @@
 (library
  (public_name sx.core)
- (name sx))
+ (name sx)
+ (libraries unix))

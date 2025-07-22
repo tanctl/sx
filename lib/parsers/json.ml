@@ -25,10 +25,11 @@ let rec yojson_to_ast ~filename = function
 let parse_string ~filename content =
   try
     let yojson = Yojson.Basic.from_string content in
-    Ok (yojson_to_ast ~filename yojson)
+    yojson_to_ast ~filename yojson
   with
   | Yojson.Json_error msg ->
-      Error (Ast.error ~message:("JSON parse error: " ^ msg) ~position:Position.dummy)
+      let pos = Position.make ~filename ~line:1 ~column:1 in
+      Error.parse_error ~message:("JSON parse error: " ^ msg) ~position:pos ~source_context:content ()
 
 let parse_file filename =
   try
@@ -37,5 +38,6 @@ let parse_file filename =
     close_in ic;
     parse_string ~filename content
   with
+  | Error.Sx_error _ as e -> raise e
   | Sys_error msg ->
-      Error (Ast.error ~message:("File error: " ^ msg) ~position:Position.dummy)
+      Error.io_error ~message:("File error: " ^ msg) ~position:Position.dummy ()

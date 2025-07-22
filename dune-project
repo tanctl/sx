@@ -8,4 +8,5 @@
   ocaml
   dune
   yojson
+  yaml
   cmdliner))

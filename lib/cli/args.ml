@@ -12,6 +12,7 @@ type config = {
 let input_format_of_string = function
   | "auto" -> Ok Ast.Auto
   | "json" -> Ok Ast.JSON
+  | "yaml" -> Ok Ast.YAML
   | s -> Error (`Msg ("Invalid input format: " ^ s))
 
 let output_format_of_string = function
@@ -24,6 +25,7 @@ let input_format_conv =
   let printer fmt = function
     | Ast.Auto -> Format.fprintf fmt "auto"
     | Ast.JSON -> Format.fprintf fmt "json"
+    | Ast.YAML -> Format.fprintf fmt "yaml"
   in
   Arg.conv (parser, printer)
 
@@ -44,7 +46,7 @@ let output_file =
   Arg.(value & pos 1 (some string) None & info [] ~docv:"OUTPUT" ~doc)
 
 let input_format =
-  let doc = "Input format. Supported: auto (default), json. Auto-detection based on file extension." in
+  let doc = "Input format. Supported: auto (default), json, yaml. Auto-detection based on file extension." in
   Arg.(value & opt input_format_conv Ast.Auto & info ["f"; "from"] ~docv:"FORMAT" ~doc)
 
 let output_format =
@@ -90,4 +92,3 @@ let info =
     Cmd.Exit.info ~doc:"on input/output errors" 2;
   ] in
   Cmd.info "sx" ~version:"0.0.0.1" ~doc ~exits ~man
-

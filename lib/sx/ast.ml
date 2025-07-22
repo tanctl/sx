@@ -16,14 +16,40 @@ let position_of = function
   | List (_, pos) -> pos
   | Assoc (_, pos) -> pos
 
+type input_format =
+  | Auto
+  | JSON
+
+type output_format =
+  | Common_lisp
+  | Scheme
+
+type formatting =
+  | Pretty
+  | Compact
+
 type sexp =
   | Atom of string
   | List of sexp list
 
-let rec sexp_to_string = function
+let rec sexp_to_string_compact = function
   | Atom s -> s
   | List sexps ->
-      "(" ^ String.concat " " (List.map sexp_to_string sexps) ^ ")"
+      "(" ^ String.concat " " (List.map sexp_to_string_compact sexps) ^ ")"
+
+let rec sexp_to_string_pretty ?(indent=0) = function
+  | Atom s -> s
+  | List [] -> "()"
+  | List [single] -> "(" ^ sexp_to_string_pretty ~indent single ^ ")"
+  | List sexps ->
+      let inner_spaces = String.make (indent + 2) ' ' in
+      let items = List.map (sexp_to_string_pretty ~indent:(indent + 2)) sexps in
+      "(" ^ String.concat ("\n" ^ inner_spaces) items ^ ")"
+
+let sexp_to_string ?(formatting=Pretty) sexp =
+  match formatting with
+  | Compact -> sexp_to_string_compact sexp
+  | Pretty -> sexp_to_string_pretty sexp
 
 type error = {
   message : string;

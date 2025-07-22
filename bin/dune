@@ -1,4 +1,4 @@
 (executable
  (public_name sx)
  (name main)
- (libraries sx parsers generators))
+ (libraries sx parsers generators cli cmdliner))

@@ -14,20 +14,20 @@ let escape_string s =
   Buffer.contents buf
 
 let rec ast_to_sexp = function
-  | Ast.Null _ -> Ast.Atom "nil"
-  | Ast.Bool (true, _) -> Ast.Atom "t"
-  | Ast.Bool (false, _) -> Ast.Atom "nil"
+  | Ast.Null _ -> Ast.Atom "#f"
+  | Ast.Bool (true, _) -> Ast.Atom "#t"
+  | Ast.Bool (false, _) -> Ast.Atom "#f"
   | Ast.Int (i, _) -> Ast.Atom (string_of_int i)
   | Ast.Float (f, _) -> Ast.Atom (string_of_float f)
   | Ast.String (s, _) -> Ast.Atom (escape_string s)
   | Ast.List (values, _) ->
       let converted = List.map ast_to_sexp values in
-      Ast.List converted
+      Ast.List (Ast.Atom "list" :: converted)
   | Ast.Assoc (assoc, _) ->
       let pairs = List.map (fun (key, value) ->
-        Ast.List [Ast.Atom (escape_string key); ast_to_sexp value]
+        Ast.List [Ast.Atom "cons"; Ast.Atom (escape_string key); ast_to_sexp value]
       ) assoc in
-      Ast.List pairs
+      Ast.List (Ast.Atom "list" :: pairs)
 
 let generate ?(formatting=Ast.Pretty) ast =
   let sexp = ast_to_sexp ast in

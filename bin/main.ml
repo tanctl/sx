@@ -27,8 +27,10 @@ let detect_input_format (config : Cli.Args.config) filename content =
   match config.input_format with
   | Ast.JSON -> Ast.JSON
   | Ast.YAML -> Ast.YAML
+  | Ast.TOML -> Ast.TOML
   | Ast.JSONLines -> Ast.JSONLines
   | Ast.Auto -> 
+      (* streaming mode favors json lines detection for better performance *)
       if config.streaming && Cli.Io.is_jsonlines_format content then
         Ast.JSONLines
       else
@@ -39,6 +41,7 @@ let parse_input format filename content =
   match format with
   | Ast.JSON -> Parsers.Json.parse_string ~filename:fname content
   | Ast.YAML -> Parsers.Yaml_parser.parse_string ~filename:fname content
+  | Ast.TOML -> Parsers.Toml.parse_string ~filename:fname content
   | Ast.JSONLines -> 
       Error.unsupported_feature 
         ~message:"JSON Lines format requires streaming mode (use --streaming flag)"
@@ -104,6 +107,7 @@ let run_streaming (config : Cli.Args.config) input_format =
       Cli.Io.close_input_stream channel stream_source;
       raise exn
 
+(* decide whether to use streaming based on format and content size *)
 let should_use_streaming (config : Cli.Args.config) input_format content =
   config.streaming || 
   (match input_format with
@@ -111,35 +115,158 @@ let should_use_streaming (config : Cli.Args.config) input_format content =
    | Ast.JSON when Cli.Io.is_large_json_array content -> true
    | _ -> false)
 
-let run (config : Cli.Args.config) =
-  try
-    if config.streaming && config.input_file = None then
-      (* determine format differently for streaming from stdin*)
-      let input_format = match config.input_format with
-        | Ast.Auto -> Ast.JSONLines
-        | other -> other
-      in
-      run_streaming config input_format
+let apply_config_to_cli_args (config : Config.config) (cli_config : Cli.Args.config) =
+  (* only apply config defaults when CLI args are at their default values *)
+  (* check if the user explicitly set cli flags vs using defaults *)
+  let formatting = 
+    if cli_config.formatting = Ast.Pretty && not config.pretty_print then
+      Ast.Compact
     else
-      let content = read_input config.input_file in
-      let input_format = detect_input_format config config.input_file content in
-      
-      if should_use_streaming config input_format content then
-        run_streaming config input_format
-      else
-        let ast = parse_input input_format config.input_file content in
-        let output = generate_output config ast in
-        write_output (output ^ "\n") config.output_file;
-        0
+      cli_config.formatting
+  in
+  let output_format = 
+    cli_config.output_format
+  in
+  let buffer_size = 
+    if cli_config.buffer_size = 8192 then
+      config.streaming.buffer_size
+    else
+      cli_config.buffer_size
+  in
+  { cli_config with 
+    output_format; 
+    formatting; 
+    buffer_size }
+
+let load_and_apply_config (cli_config : Cli.Args.config) =
+  match Config.load_config ?custom_config:cli_config.config_file ~ignore_config:cli_config.no_config () with
+  | Ok config -> 
+      let merged_config = apply_config_to_cli_args config cli_config in
+      (merged_config, None)
+  | Error config_error ->
+      (cli_config, Some config_error)
+
+let validate_single_file (config : Cli.Args.config) filename =
+  try
+    let content = read_input (Some filename) in
+    let input_format = detect_input_format config (Some filename) content in
+    let _ = parse_input input_format (Some filename) content in (* parse to validate syntax only *)
+    Error.create_validation_result ~filename ~success:true ()
   with
   | Error.Sx_error error ->
-      Error.print_error error;
+      Error.create_validation_result ~filename ~success:false ~error ()
+  | exn ->
+      let pos = Position.make ~filename ~line:1 ~column:1 in
+      let error = Error.make_error 
+        ~kind:(Error.ParseError ("Validation failed: " ^ Printexc.to_string exn))
+        ~position:pos () in
+      Error.create_validation_result ~filename ~success:false ~error ()
+
+let process_single_file_normal (config : Cli.Args.config) filename =
+  if config.streaming && config.input_file = None then
+    let input_format = match config.input_format with
+      | Ast.Auto -> Ast.JSONLines
+      | other -> other
+    in
+    run_streaming config input_format
+  else
+    let content = read_input (Some filename) in
+    let input_format = detect_input_format config (Some filename) content in
+    
+    if should_use_streaming config input_format content then
+      run_streaming config input_format
+    else
+      let ast = parse_input input_format (Some filename) content in
+      let output = generate_output config ast in
+      write_output (output ^ "\n") config.output_file;
+      0
+
+let get_input_files (config : Cli.Args.config) =
+  (* priority: input_files (multiple) > input_file (single) > stdin *)
+  match config.input_files with
+  | [] ->
+      (match config.input_file with
+       | None -> ["-"]
+       | Some file -> [file])
+  | files -> files
+
+let run (cli_config : Cli.Args.config) =
+  try
+    let (config, config_error_opt) = load_and_apply_config cli_config in
+    
+    (match config_error_opt with
+     | Some error -> 
+         if not config.quiet then (
+           Printf.eprintf "Warning: Configuration error: %s\n" (Error.format_error error);
+           flush stderr
+         )
+     | None -> ());
+    
+    let input_files = get_input_files config in
+    
+    if config.validate then
+      let (valid_files, file_errors) = Cli.Io.validate_input_files input_files in
+      
+      List.iter (fun (_file, error) ->
+        if not config.quiet then
+          match error with
+          | `File_not_found path -> Printf.eprintf "Error: File not found: %s\n" path
+          | `Permission_denied path -> Printf.eprintf "Error: Permission denied: %s\n" path
+          | `Is_directory path -> Printf.eprintf "Error: Is a directory: %s\n" path
+          | `Broken_symlink path -> Printf.eprintf "Error: Broken symbolic link: %s\n" path
+          | `Unsupported_file_type path -> Printf.eprintf "Error: Unsupported file type: %s\n" path
+      ) file_errors;
+      
+      let summary = ref (Error.create_empty_summary ()) in
+      let continue_processing = ref true in
+      
+      List.iter (fun filename ->
+        if !continue_processing then (
+          let result = validate_single_file config filename in
+          summary := Error.add_result_to_summary !summary result;
+          Error.print_validation_result ~quiet:config.quiet ~verbose:config.verbose result;
+          if config.fail_fast && not result.success then
+            continue_processing := false
+        )
+      ) valid_files;
+      
+      Error.print_validation_summary ~quiet:config.quiet !summary;
+      Error.validation_exit_code !summary
+    else
+      match input_files with
+      | [single_file] ->
+          if single_file = "-" then
+            if config.streaming && config.input_file = None then
+              let input_format = match config.input_format with
+                | Ast.Auto -> Ast.JSONLines
+                | other -> other
+              in
+              run_streaming config input_format
+            else
+              let content = read_input None in
+              let input_format = detect_input_format config None content in
+              
+              if should_use_streaming config input_format content then
+                run_streaming config input_format
+              else
+                let ast = parse_input input_format None content in
+                let output = generate_output config ast in
+                write_output (output ^ "\n") config.output_file;
+                0
+          else
+            process_single_file_normal config single_file
+      | _ ->
+          Printf.eprintf "Error: Multiple files only supported in validation mode (use --validate)\n";
+          2
+  with
+  | Error.Sx_error error ->
+      if not cli_config.quiet then Error.print_error error;
       2
   | Sys_error msg ->
-      Printf.eprintf "IO Error: %s\n" msg;
+      if not cli_config.quiet then Printf.eprintf "IO Error: %s\n" msg;
       2
   | exn ->
-      Printf.eprintf "Unexpected error: %s\n" (Printexc.to_string exn);
+      if not cli_config.quiet then Printf.eprintf "Unexpected error: %s\n" (Printexc.to_string exn);
       2
 
 let () = 

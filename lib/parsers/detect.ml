@@ -7,6 +7,8 @@ let detect_by_extension filename =
   else if String.ends_with ~suffix:".yaml" lowercase_filename || 
           String.ends_with ~suffix:".yml" lowercase_filename then
     Some Ast.YAML
+  else if String.ends_with ~suffix:".toml" lowercase_filename then
+    Some Ast.TOML
   else
     None
 
@@ -16,12 +18,18 @@ let detect_by_content content =
   else
     let first_char = trimmed.[0] in
     match first_char with
-    | '{' | '[' | '"' -> Some Ast.JSON
+    | '{' | '"' -> Some Ast.JSON
+    | '[' -> 
+        if String.contains content '=' then Some Ast.TOML else Some Ast.JSON
     | '-' when String.length trimmed > 2 && trimmed.[1] = '-' && trimmed.[2] = '-' -> 
         Some Ast.YAML
     | _ ->
-        if String.contains trimmed ':' && not (String.contains trimmed '{') then
+        if String.contains trimmed '=' && String.contains trimmed ':' then
+          Some Ast.TOML
+        else if String.contains trimmed ':' && not (String.contains trimmed '{') then
           Some Ast.YAML (* yaml key-value without json object syntax *)
+        else if String.contains trimmed '=' then
+          Some Ast.TOML
           (* edge case: pure numeric content could be valid json *)
         else if String.for_all (fun c -> c = ' ' || c = '\t' || c = '\n' || 
                                           Char.code c >= 48 && Char.code c <= 57 || 

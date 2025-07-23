@@ -7,12 +7,16 @@ type config = {
   input_format : Ast.input_format;
   output_format : Ast.output_format;
   formatting : Ast.formatting;
+  streaming : bool;
+  buffer_size : int;
+  show_progress : bool;
 }
 
 let input_format_of_string = function
   | "auto" -> Ok Ast.Auto
   | "json" -> Ok Ast.JSON
   | "yaml" -> Ok Ast.YAML
+  | "jsonl" | "jsonlines" -> Ok Ast.JSONLines
   | s -> Error (`Msg ("Invalid input format: " ^ s))
 
 let output_format_of_string = function
@@ -26,6 +30,7 @@ let input_format_conv =
     | Ast.Auto -> Format.fprintf fmt "auto"
     | Ast.JSON -> Format.fprintf fmt "json"
     | Ast.YAML -> Format.fprintf fmt "yaml"
+    | Ast.JSONLines -> Format.fprintf fmt "jsonl"
   in
   Arg.conv (parser, printer)
 
@@ -46,7 +51,7 @@ let output_file =
   Arg.(value & pos 1 (some string) None & info [] ~docv:"OUTPUT" ~doc)
 
 let input_format =
-  let doc = "Input format. Supported: auto (default), json, yaml. Auto-detection based on file extension." in
+  let doc = "Input format. Supported: auto (default), json, yaml, jsonl. Auto-detection based on file extension and content." in
   Arg.(value & opt input_format_conv Ast.Auto & info ["f"; "from"] ~docv:"FORMAT" ~doc)
 
 let output_format =
@@ -61,14 +66,26 @@ let compact =
   let doc = "Compact output on single line." in
   Arg.(value & flag & info ["c"; "compact"] ~doc)
 
+let streaming =
+  let doc = "Enable streaming mode for large JSON arrays or JSON Lines files." in
+  Arg.(value & flag & info ["s"; "streaming"] ~doc)
+
+let buffer_size =
+  let doc = "Buffer size for streaming I/O in bytes (default: 8192)." in
+  Arg.(value & opt int 8192 & info ["buffer-size"] ~docv:"SIZE" ~doc)
+
+let show_progress =
+  let doc = "Show progress information when processing large files in streaming mode." in
+  Arg.(value & flag & info ["progress"] ~doc)
+
 let config_term =
-  let combine input_file output_file input_format output_format _pretty compact =
+  let combine input_file output_file input_format output_format _pretty compact streaming buffer_size show_progress =
     let formatting = 
       if compact then Ast.Compact else Ast.Pretty
     in
-    { input_file; output_file; input_format; output_format; formatting }
+    { input_file; output_file; input_format; output_format; formatting; streaming; buffer_size; show_progress }
   in
-  Term.(const combine $ input_file $ output_file $ input_format $ output_format $ pretty $ compact)
+  Term.(const combine $ input_file $ output_file $ input_format $ output_format $ pretty $ compact $ streaming $ buffer_size $ show_progress)
 
 let info =
   let doc = "Convert between JSON, YAML and various S-expression formats" in
@@ -85,6 +102,12 @@ let info =
     `Pre "  cat data.json | $(tname) --to scheme > output.scm";
     `P "Convert and save to file:";
     `Pre "  $(tname) input.json output.lisp";
+    `P "Stream large JSON arrays:";
+    `Pre "  $(tname) --streaming large-array.json";
+    `P "Process JSON Lines format:";
+    `Pre "  $(tname) --from jsonl --streaming logs.jsonl";
+    `P "Stream with progress:";
+    `Pre "  cat huge-logs.jsonl | $(tname) --streaming --progress --from jsonl";
   ] in
   let exits = [
     Cmd.Exit.info ~doc:"on success" 0;

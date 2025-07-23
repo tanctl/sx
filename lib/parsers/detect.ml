@@ -21,7 +21,8 @@ let detect_by_content content =
         Some Ast.YAML
     | _ ->
         if String.contains trimmed ':' && not (String.contains trimmed '{') then
-          Some Ast.YAML
+          Some Ast.YAML (* yaml key-value without json object syntax *)
+          (* edge case: pure numeric content could be valid json *)
         else if String.for_all (fun c -> c = ' ' || c = '\t' || c = '\n' || 
                                           Char.code c >= 48 && Char.code c <= 57 || 
                                           c = '.' || c = '-' || c = '+' || c = 'e' || c = 'E') trimmed then

@@ -1,4 +1,4 @@
 (library
  (public_name sx.cli)
  (name cli)
- (libraries sx cmdliner))
+ (libraries sx cmdliner unix))

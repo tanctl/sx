@@ -1,0 +1,9 @@
+name: lua
+age: 4
+active: true
+address:
+  street: catstreet
+  city: cattown 
+invalid_syntax: [
+  missing_quote: value
+  - another item

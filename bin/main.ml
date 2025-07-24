@@ -23,17 +23,17 @@ let write_output content = function
       output_string oc content;
       close_out oc
 
-let detect_input_format (config : Cli.Args.config) filename _content =
+let detect_input_format (config : Cli.Args.config) filename content =
   match config.input_format with
   | Ast.JSON -> Ast.JSON
-  | Ast.Auto ->
-      match filename with
-      | Some name when String.ends_with ~suffix:".json" name -> Ast.JSON
-      | _ -> Ast.JSON
+  | Ast.YAML -> Ast.YAML
+  | Ast.Auto -> Parsers.Detect.detect_format ~filename_opt:filename ~content
 
 let parse_input format filename content =
+  let fname = Option.value filename ~default:"<stdin>" in
   match format with
-  | Ast.JSON -> Parsers.Json.parse_string ~filename:(Option.value filename ~default:"<stdin>") content
+  | Ast.JSON -> Parsers.Json.parse_string ~filename:fname content
+  | Ast.YAML -> Parsers.Yaml_parser.parse_string ~filename:fname content
   | Ast.Auto -> failwith "Auto format should be resolved before parsing"
 
 let generate_output (config : Cli.Args.config) ast =
@@ -45,17 +45,14 @@ let run (config : Cli.Args.config) =
   try
     let content = read_input config.input_file in
     let input_format = detect_input_format config config.input_file content in
-    match parse_input input_format config.input_file content with
-    | Ok ast ->
-        let output = generate_output config ast in
-        write_output (output ^ "\n") config.output_file;
-        0
-    | Error error ->
-        Printf.eprintf "Error: %s at %s\n" 
-          error.message 
-          (Position.to_string error.position);
-        2
+    let ast = parse_input input_format config.input_file content in
+    let output = generate_output config ast in
+    write_output (output ^ "\n") config.output_file;
+    0
   with
+  | Error.Sx_error error ->
+      Error.print_error error;
+      2
   | Sys_error msg ->
       Printf.eprintf "IO Error: %s\n" msg;
       2

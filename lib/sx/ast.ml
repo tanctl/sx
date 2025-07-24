@@ -19,6 +19,7 @@ let position_of = function
 type input_format =
   | Auto
   | JSON
+  | YAML
 
 type output_format =
   | Common_lisp
@@ -50,14 +51,3 @@ let sexp_to_string ?(formatting=Pretty) sexp =
   match formatting with
   | Compact -> sexp_to_string_compact sexp
   | Pretty -> sexp_to_string_pretty sexp
-
-type error = {
-  message : string;
-  position : Position.t;
-}
-
-exception Parse_error of error
-
-let error ~message ~position = { message; position }
-
-let make_error ~message ~position = Parse_error (error ~message ~position)

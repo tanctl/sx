@@ -20,6 +20,7 @@ type input_format =
   | Auto
   | JSON
   | YAML
+  | JSONLines
 
 type output_format =
   | Common_lisp
@@ -51,3 +52,16 @@ let sexp_to_string ?(formatting=Pretty) sexp =
   match formatting with
   | Compact -> sexp_to_string_compact sexp
   | Pretty -> sexp_to_string_pretty sexp
+
+(* streaming suport types *)
+type stream_mode = 
+  | SingleItem
+  | StreamArray
+  | StreamLines
+
+type processing_mode = {
+  streaming : bool;
+  stream_mode : stream_mode;
+  buffer_size : int;
+  show_progress : bool;
+}

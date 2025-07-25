@@ -16,7 +16,7 @@ let escape_string s =
 let rec ast_to_sexp = function
   | Ast.Null _ -> Ast.Atom "nil"
   | Ast.Bool (true, _) -> Ast.Atom "t"
-  | Ast.Bool (false, _) -> Ast.Atom "nil"
+  | Ast.Bool (false, _) -> Ast.Atom "nil" (* common lisp boolean syntax *)
   | Ast.Int (i, _) -> Ast.Atom (string_of_int i)
   | Ast.Float (f, _) -> Ast.Atom (string_of_float f)
   | Ast.String (s, _) -> Ast.Atom (escape_string s)

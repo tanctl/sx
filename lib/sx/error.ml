@@ -52,6 +52,7 @@ let extract_source_line content line_num =
 let show_context_line line line_num column =
   let line_str = Printf.sprintf "%4d | %s" line_num line in
   let spaces = String.make (String.length (Printf.sprintf "%4d | " line_num) + column - 1) ' ' in
+    (* calculate spaces to align error pointer with source position *)
   let pointer = color_red "^" in
   [line_str; spaces ^ pointer]
 

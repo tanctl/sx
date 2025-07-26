@@ -96,12 +96,16 @@ let is_jsonlines_format content =
   match non_empty_lines with
   | [] -> false
   | lines when List.length lines > 1 ->
-      (* if each line starts with { or [ *)
-      List.for_all (fun line ->
-        let trimmed = String.trim line in
-        String.length trimmed > 0 && 
-        (trimmed.[0] = '{' || trimmed.[0] = '[')
-      ) (List.take (min 5 (List.length lines)) lines)
+      (* json lines: each line should be a complete json object starting with { *)
+      (* json arrays start with [ on first line, so exclude those *)
+      let first_line = String.trim (List.hd lines) in
+      if String.length first_line > 0 && first_line.[0] = '[' then
+        false
+      else
+        List.for_all (fun line ->
+          let trimmed = String.trim line in
+          String.length trimmed > 0 && trimmed.[0] = '{'
+        ) (List.take (min 5 (List.length lines)) lines)
   | _ -> false
 
 let is_large_json_array content =

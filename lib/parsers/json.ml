@@ -69,18 +69,105 @@ module Stream = struct
     Seq.map convert_item seq
 
   let parse_json_array_stream ~filename channel =
-    try
-      let seq = Yojson.Safe.seq_from_channel channel in
-      yojson_seq_to_ast_seq ~filename seq
-    with
-    | exn -> 
-        fun () -> Seq.Cons (StreamError (Printexc.to_string exn), fun () -> Seq.Nil)
+    let state = ref `ExpectOpenBracket in
+    let current_item = Buffer.create 256 in
+    let brace_depth = ref 0 in
+    let in_string = ref false in
+    let escaped = ref false in
+    
+    let rec next_item () =
+      try
+        match !state with
+        | `ExpectOpenBracket ->
+            (* skip whitespace and find opening bracket *)
+            let rec find_bracket () =
+              let c = input_char channel in
+              match c with
+              | '[' -> 
+                  state := `InArray;
+                  next_item ()
+              | ' ' | '\t' | '\n' | '\r' -> find_bracket ()
+              | _ -> raise (Failure ("Expected '[' at start of JSON array, found: " ^ String.make 1 c))
+            in
+            find_bracket ()
+            
+        | `InArray ->
+            let rec parse_char () =
+              let c = input_char channel in
+              
+              if !escaped then begin
+                Buffer.add_char current_item c;
+                escaped := false;
+                parse_char ()
+              end else begin
+                match c with
+                | '\\' when !in_string ->
+                    Buffer.add_char current_item c;
+                    escaped := true;
+                    parse_char ()
+                | '"' ->
+                    Buffer.add_char current_item c;
+                    in_string := not !in_string;
+                    parse_char ()
+                | '{' when not !in_string ->
+                    Buffer.add_char current_item c;
+                    incr brace_depth;
+                    parse_char ()
+                | '}' when not !in_string ->
+                    Buffer.add_char current_item c;
+                    decr brace_depth;
+                    if !brace_depth = 0 then begin
+                      (* complete json object found *)
+                      let item_str = Buffer.contents current_item in
+                      Buffer.clear current_item;
+                      try
+                        let yojson = Yojson.Basic.from_string item_str in
+                        let ast = yojson_to_ast ~filename yojson in
+                        Seq.Cons (StreamItem ast, next_item)
+                      with
+                      | Yojson.Json_error msg ->
+                          Seq.Cons (StreamError ("JSON parse error: " ^ msg), next_item)
+                      | exn ->
+                          Seq.Cons (StreamError (Printexc.to_string exn), next_item)
+                    end else
+                      parse_char ()
+                | ',' when not !in_string && !brace_depth = 0 ->
+                    (* skip comma between items *)
+                    parse_char ()
+                | ']' when not !in_string && !brace_depth = 0 ->
+                    state := `Finished;
+                    Seq.Nil
+                | ' ' | '\t' | '\n' | '\r' when not !in_string && !brace_depth = 0 ->
+                    (* skip whitespace between items *)
+                    parse_char ()
+                | _ when not !in_string && !brace_depth = 0 && c = '{' ->
+                    Buffer.add_char current_item c;
+                    incr brace_depth;
+                    parse_char ()
+                | _ ->
+                    Buffer.add_char current_item c;
+                    parse_char ()
+              end
+            in
+            parse_char ()
+            
+        | `Finished -> Seq.Nil
+      with
+      | End_of_file -> 
+          if Buffer.length current_item > 0 then
+            Seq.Cons (StreamError "Unexpected end of file in JSON array", fun () -> Seq.Nil)
+          else
+            Seq.Nil
+      | exn -> 
+          Seq.Cons (StreamError (Printexc.to_string exn), fun () -> Seq.Nil)
+    in
+    next_item
 
   let parse_jsonlines_stream ~filename channel =
     let rec next_line () =
       try
         let line = input_line channel in
-        let trimmed = String.trim line in
+        let trimmed = String.trim line in (* skip empty lines *)
         if trimmed = "" then next_line () else
         try
           let yojson = Yojson.Basic.from_string trimmed in

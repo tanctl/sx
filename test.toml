@@ -1,0 +1,8 @@
+name = "lua"
+age = 4
+active = true
+notes = ""
+
+[address]
+street = "catstreet"
+city = "cattown"

@@ -98,3 +98,67 @@ let unsupported_feature ~message ~position ?source_context () =
 
 let format_detection_error ~message ~position ?source_context () =
   raise_error ~kind:(FormatDetectionError message) ~position ?source_context ()
+
+type validation_result = {
+  filename : string;
+  success : bool;
+  error : error option;
+  warning_count : int;
+}
+
+type validation_summary = {
+  files_processed : int;
+  files_valid : int;
+  files_with_errors : int;
+  files_with_warnings : int;
+  total_errors : int;
+  total_warnings : int;
+  results : validation_result list;
+}
+
+let create_validation_result ~filename ~success ?error ?(warning_count=0) () =
+  { filename; success; error; warning_count }
+
+let create_empty_summary () =
+  { files_processed = 0; files_valid = 0; files_with_errors = 0; files_with_warnings = 0;
+    total_errors = 0; total_warnings = 0; results = [] }
+
+let add_result_to_summary summary result =
+  let files_processed = summary.files_processed + 1 in
+  let files_valid = if result.success then summary.files_valid + 1 else summary.files_valid in
+  let files_with_errors = if not result.success then summary.files_with_errors + 1 else summary.files_with_errors in
+  let files_with_warnings = if result.warning_count > 0 then summary.files_with_warnings + 1 else summary.files_with_warnings in
+  let total_errors = if not result.success then summary.total_errors + 1 else summary.total_errors in
+  let total_warnings = summary.total_warnings + result.warning_count in
+  let results = result :: summary.results in
+  { files_processed; files_valid; files_with_errors; files_with_warnings; total_errors; total_warnings; results }
+
+let print_validation_result ~quiet ~verbose result =
+  if not quiet then
+    if result.success then
+      Printf.printf "✓ %s: valid\n" result.filename
+    else
+      match result.error with
+      | Some error ->
+          Printf.printf "✗ %s: %s\n" result.filename (if verbose then format_error error else error_message error.kind);
+          if verbose then flush stdout
+      | None ->
+          Printf.printf "✗ %s: unknown error\n" result.filename
+
+let print_validation_summary ~quiet summary =
+  if not quiet then (
+    if summary.files_processed > 1 then (
+      Printf.printf "\n--- Validation Summary ---\n";
+      Printf.printf "Files processed: %d\n" summary.files_processed;
+      Printf.printf "Valid files: %d\n" summary.files_valid;
+      if summary.files_with_errors > 0 then
+        Printf.printf "Files with errors: %d\n" summary.files_with_errors;
+      if summary.files_with_warnings > 0 then
+        Printf.printf "Files with warnings: %d\n" summary.files_with_warnings;
+      Printf.printf "\n";
+    );
+    flush stdout
+  )
+
+let validation_exit_code summary =
+  if summary.files_with_errors > 0 then 1 else 0

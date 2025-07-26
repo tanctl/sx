@@ -20,6 +20,7 @@ type input_format =
   | Auto
   | JSON
   | YAML
+  | TOML
   | JSONLines
 
 type output_format =

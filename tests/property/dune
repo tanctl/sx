@@ -1,0 +1,4 @@
+(executable
+ (public_name test_basic_invariants)
+ (name test_basic_invariants)
+ (libraries sx parsers generators cli qcheck alcotest))

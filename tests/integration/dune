@@ -1,0 +1,4 @@
+(executables
+ (public_names test_cli test_streaming test_batch test_auto_detect)
+ (names test_cli test_streaming test_batch test_auto_detect)
+ (libraries sx parsers generators cli alcotest))

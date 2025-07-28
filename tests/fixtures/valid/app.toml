@@ -1,0 +1,19 @@
+# Application configuration
+title = "My Application"
+version = "2.1.0"
+debug = false
+
+[database]
+host = "db.example.com"
+port = 3306
+name = "myapp_prod"
+
+[logging]
+level = "info"
+file = "/var/log/app.log"
+rotate = true
+
+[features]
+auth = true
+metrics = true
+caching = false

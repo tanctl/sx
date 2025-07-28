@@ -1,0 +1,4 @@
+(executables
+ (public_names test_parsers test_generators test_config test_error_handling)
+ (names test_parsers test_generators test_config test_error_handling)
+ (libraries sx parsers generators cli alcotest))

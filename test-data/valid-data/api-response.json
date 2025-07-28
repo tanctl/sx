@@ -1,0 +1,29 @@
+{
+  "user": {
+    "id": 12345,
+    "username": "meow",
+    "email": "meow@meow.com",
+    "active": true,
+    "roles": ["developer", "meow"],
+    "profile": {
+      "name": "cat",
+      "bio": "sleeps and eats",
+      "location": "pacific ocean",
+      "website": "https://tanya.rs"
+    },
+    "preferences": {
+      "theme": "dark",
+      "notifications": true,
+      "timezone": "Asia/Kolkata"
+    }
+  },
+  "metadata": {
+    "request_id": "req_7f8a9b2c",
+    "timestamp": "2100-01-01T01:01:01",
+    "version": "v2.1",
+    "rate_limit": {
+      "remaining": 847,
+      "reset_at": "2200-02-02T02:02:02"
+    }
+  }
+}

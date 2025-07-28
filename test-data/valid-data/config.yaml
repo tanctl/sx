@@ -1,0 +1,60 @@
+app:
+  name: "archlinux" 
+  version: "1.0.0"
+  environment: home
+  
+server:
+  host: 0.0.0.0
+  port: 3000
+  ssl:
+    enabled: true
+    cert_path: /etc/ssl/certs/app.crt
+    key_path: /etc/ssl/private/app.key
+    
+database:
+  primary:
+    host: chimiken.db.com
+    port: 5432
+    name: app_db
+    user: app_user
+    ssl: true
+  replica:
+    host: chimiken.replica.com
+    port: 5432
+    name: app_db
+    user: readonly_user
+    ssl: true
+    
+cache:
+  type: redis
+  servers:
+    - host: redis.example.com
+      port: 6379
+    - host: realredis.example.com  
+      port: 6379
+  password: redis_passwd
+  
+monitoring:
+  metrics:
+    enabled: true
+    port: 9090
+  logging:
+    level: info
+    format: json
+    outputs:
+      - type: file
+        path: /var/log/app.log
+        max_size: 100MB
+        max_files: 5
+      - type: stdout
+        
+features:
+  - authentication
+  - rate_limiting
+  - caching
+  - analytics
+  
+limits:
+  max_connections: 1000
+  request_timeout: 30s
+  body_size: 10MB

@@ -1,0 +1,9 @@
+{"timestamp": "2024-01-15T10:00:00Z", "level": "INFO", "message": "Server started", "service": "api", "pid": 12345}
+{"timestamp": "2024-01-15T10:00:15Z", "level": "INFO", "message": "Database connection established", "service": "api", "duration_ms": 150}
+{"timestamp": "2024-01-15T10:01:30Z", "level": "INFO", "message": "User login", "service": "auth", "user_id": 5678, "ip": "192.168.1.100"}
+{"timestamp": "2024-01-15T10:02:45Z", "level": "WARN", "message": "Rate limit approaching", "service": "api", "endpoint": "/api/users", "current_rate": 95}
+{"timestamp": "2024-01-15T10:03:00Z", "level": "ERROR", "message": "Database query timeout", "service": "api", "query": "SELECT * FROM users", "duration_ms": 5000}
+{"timestamp": "2024-01-15T10:03:15Z", "level": "INFO", "message": "Cache miss", "service": "cache", "key": "user:5678", "ttl": 3600}
+{"timestamp": "2024-01-15T10:04:00Z", "level": "INFO", "message": "API request", "service": "api", "method": "GET", "path": "/api/users/5678", "status": 200, "duration_ms": 45}
+{"timestamp": "2024-01-15T10:05:30Z", "level": "ERROR", "message": "Payment processing failed", "service": "payments", "transaction_id": "txn_abc123", "error": "insufficient_funds"}
+{"timestamp": "2024-01-15T10:06:00Z", "level": "INFO", "message": "User logout", "service": "auth", "user_id": 5678, "session_duration_ms": 360000}

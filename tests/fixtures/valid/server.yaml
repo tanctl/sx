@@ -1,0 +1,11 @@
+name: production-server
+port: 8080
+hosts:
+  - api.example.com
+  - www.example.com
+ssl:
+  enabled: true
+  cert: /etc/ssl/cert.pem
+  key: /etc/ssl/key.pem
+workers: 4
+timeout: 30.5

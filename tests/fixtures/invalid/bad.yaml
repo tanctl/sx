@@ -1,0 +1,5 @@
+name: test
+value: 69
+nested:
+  key: value
+    bad_indent: oopsie

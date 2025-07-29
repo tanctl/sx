@@ -1,0 +1,56 @@
+opam-version: "2.0"
+name: "sx"
+version: "0.0.0.1"
+synopsis: "Fast, streaming S-expression converter for JSON, YAML, and TOML"
+description: """
+sx is a command-line tool that converts structured data from JSON, YAML, and TOML 
+into Common Lisp or Scheme S-expressions. It features automatic format detection, 
+streaming processing for large files, batch validation, and configurable output formatting.
+
+Key features:
+- Multi-format input support (JSON, YAML, TOML, JSON Lines)
+- Streaming mode with constant memory usage for large files
+- Batch processing and validation with comprehensive error reporting
+- TOML-based configuration system with hierarchical search
+- Format auto-detection by extension and content analysis
+- Production-ready with comprehensive testing
+
+Perfect for data pipelines, configuration processing, and integrating structured data 
+with Lisp-based tools and applications.
+"""
+maintainer: "Tanya tanyaarora@tutamail.com"
+authors: "Tanya tanyaarora@tutamail.com"
+license: "GNU General Public License v3.0"
+homepage: "https://github.com/tanctl/sx"
+bug-reports: "https://github.com/tanctl/sx/issues"
+dev-repo: "git+https://github.com/tanctl/sx.git"
+doc: "https://github.com/tanctl/sx#readme"
+
+depends: [
+  "ocaml" {>= "4.08.0"}
+  "dune" {>= "3.0"}
+  "cmdliner" {>= "1.1.0"}
+  "yojson" {>= "1.6.0"}
+  "yaml" {>= "3.0.0"}
+  "alcotest" {with-test & >= "1.0.0"}
+  "qcheck" {with-test & >= "0.18"}
+]
+
+build: [
+  ["dune" "subst"] {dev}
+  [
+    "dune"
+    "build"
+    "-p"
+    name
+    "-j"
+    jobs
+    "@install"
+    "@runtest" {with-test}
+    "@doc" {with-doc}
+  ]
+]
+
+install: [
+  ["dune" "install" "-p" name]
+]

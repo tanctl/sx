@@ -17,6 +17,7 @@ type config = {
   quiet : bool;
   verbose : bool;
   input_files : string list;
+  pipeline_analysis : bool;
 }
 
 let input_format_of_string = function
@@ -115,14 +116,18 @@ let input_files =
   let doc = "Input files to process. Can specify multiple files for batch processing." in
   Arg.(value & pos_all string [] & info [] ~docv:"FILES" ~doc)
 
+let pipeline_analysis =
+  let doc = "Show pipeline performance analysis including timing and memory usage for each processing stage. Useful for understanding performance characteristics and bottlenecks." in
+  Arg.(value & flag & info ["pipeline-analysis"] ~doc)
+
 let config_term =
-  let combine input_file output_file input_format output_format _ compact streaming buffer_size show_progress config_file no_config validate fail_fast quiet verbose input_files =
+  let combine input_file output_file input_format output_format _ compact streaming buffer_size show_progress config_file no_config validate fail_fast quiet verbose input_files pipeline_analysis =
     let formatting = 
       if compact then Ast.Compact else Ast.Pretty
     in
-    { input_file; output_file; input_format; output_format; formatting; streaming; buffer_size; show_progress; config_file; no_config; validate; fail_fast; quiet; verbose; input_files }
+    { input_file; output_file; input_format; output_format; formatting; streaming; buffer_size; show_progress; config_file; no_config; validate; fail_fast; quiet; verbose; input_files; pipeline_analysis }
   in
-  Term.(const combine $ input_file $ output_file $ input_format $ output_format $ pretty $ compact $ streaming $ buffer_size $ show_progress $ config_file $ no_config $ validate $ fail_fast $ quiet $ verbose $ input_files)
+  Term.(const combine $ input_file $ output_file $ input_format $ output_format $ pretty $ compact $ streaming $ buffer_size $ show_progress $ config_file $ no_config $ validate $ fail_fast $ quiet $ verbose $ input_files $ pipeline_analysis)
 
 let info =
   let doc = "Fast, streaming S-expression converter for JSON, YAML, and TOML" in
@@ -147,6 +152,9 @@ let info =
     `P "Configuration:";
     `Pre "  sx --config custom.config data.json";
     `Pre "  sx --no-config --compact input.yaml";
+    `P "Performance analysis:";
+    `Pre "  sx --pipeline-analysis data.json";
+    `Pre "  sx --pipeline-analysis --streaming large-file.jsonl";
   ] in
   let exits = [
     Cmd.Exit.info ~doc:"on success" 0;

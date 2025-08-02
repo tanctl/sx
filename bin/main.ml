@@ -48,10 +48,20 @@ let parse_input format filename content =
         ~position:Position.dummy ()
   | Ast.Auto -> failwith "Auto format should be resolved before parsing"
 
+let parse_input_with_profiling profiler format filename content =
+  Sx.Profiler.profile_stage profiler Sx.Profiler.Parse (fun () ->
+    parse_input format filename content
+  )
+
 let generate_output (config : Cli.Args.config) ast =
   match config.output_format with
   | Ast.Common_lisp -> Generators.Common_lisp.generate ~formatting:config.formatting ast
   | Ast.Scheme -> Generators.Scheme.generate ~formatting:config.formatting ast
+
+let generate_output_with_profiling profiler config ast =
+  Sx.Profiler.profile_stage profiler Sx.Profiler.Generate (fun () ->
+    generate_output config ast
+  )
 
 let run_streaming (config : Cli.Args.config) input_format =
   let fname = Option.value config.input_file ~default:"<stdin>" in
@@ -176,8 +186,11 @@ let process_single_file_normal (config : Cli.Args.config) filename =
     if should_use_streaming config input_format content then
       run_streaming config input_format
     else
-      let ast = parse_input input_format (Some filename) content in
-      let output = generate_output config ast in
+      let profiler = Sx.Profiler.create_profiler ~enabled:config.pipeline_analysis () in
+      let ast = parse_input_with_profiling profiler input_format (Some filename) content in
+      let output = generate_output_with_profiling profiler config ast in
+      Sx.Profiler.add_total_result profiler;
+      if config.pipeline_analysis then Sx.Profiler.print_results profiler;
       write_output (output ^ "\n") config.output_file;
       0
 
@@ -249,8 +262,11 @@ let run (cli_config : Cli.Args.config) =
               if should_use_streaming config input_format content then
                 run_streaming config input_format
               else
-                let ast = parse_input input_format None content in
-                let output = generate_output config ast in
+                let profiler = Sx.Profiler.create_profiler ~enabled:config.pipeline_analysis () in
+                let ast = parse_input_with_profiling profiler input_format None content in
+                let output = generate_output_with_profiling profiler config ast in
+                Sx.Profiler.add_total_result profiler;
+                if config.pipeline_analysis then Sx.Profiler.print_results profiler;
                 write_output (output ^ "\n") config.output_file;
                 0
           else

@@ -7,7 +7,7 @@ let make_test_config ?(validate=false) ?(quiet=false) ?(verbose=false)
   { Cli.Args.input_file = None; output_file = None; input_format = Ast.Auto;
     output_format; formatting = Ast.Pretty; streaming = false; buffer_size = 8192;
     show_progress = false; config_file = None; no_config; validate; fail_fast = false;
-    quiet; verbose; input_files = []; pipeline_analysis = false }
+    quiet; verbose; input_files = []; pipeline_analysis = false; ast_dump = false }
 
 let test_basic_json_conversion () =
   (* This is more of a smoke test - we can't easily run the full CLI here *)

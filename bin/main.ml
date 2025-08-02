@@ -188,11 +188,17 @@ let process_single_file_normal (config : Cli.Args.config) filename =
     else
       let profiler = Sx.Profiler.create_profiler ~enabled:config.pipeline_analysis () in
       let ast = parse_input_with_profiling profiler input_format (Some filename) content in
-      let output = generate_output_with_profiling profiler config ast in
-      Sx.Profiler.add_total_result profiler;
-      if config.pipeline_analysis then Sx.Profiler.print_results profiler;
-      write_output (output ^ "\n") config.output_file;
-      0
+      
+      if config.ast_dump then (
+        Sx.Inspector.print_ast ast;
+        0
+      ) else (
+        let output = generate_output_with_profiling profiler config ast in
+        Sx.Profiler.add_total_result profiler;
+        if config.pipeline_analysis then Sx.Profiler.print_results profiler;
+        write_output (output ^ "\n") config.output_file;
+        0
+      )
 
 let get_input_files (config : Cli.Args.config) =
   (* priority: input_files (multiple) > input_file (single) > stdin *)
@@ -264,11 +270,17 @@ let run (cli_config : Cli.Args.config) =
               else
                 let profiler = Sx.Profiler.create_profiler ~enabled:config.pipeline_analysis () in
                 let ast = parse_input_with_profiling profiler input_format None content in
-                let output = generate_output_with_profiling profiler config ast in
-                Sx.Profiler.add_total_result profiler;
-                if config.pipeline_analysis then Sx.Profiler.print_results profiler;
-                write_output (output ^ "\n") config.output_file;
-                0
+                
+                if config.ast_dump then (
+                  Sx.Inspector.print_ast ast;
+                  0
+                ) else (
+                  let output = generate_output_with_profiling profiler config ast in
+                  Sx.Profiler.add_total_result profiler;
+                  if config.pipeline_analysis then Sx.Profiler.print_results profiler;
+                  write_output (output ^ "\n") config.output_file;
+                  0
+                )
           else
             process_single_file_normal config single_file
       | _ ->

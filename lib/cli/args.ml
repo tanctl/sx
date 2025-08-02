@@ -18,6 +18,7 @@ type config = {
   verbose : bool;
   input_files : string list;
   pipeline_analysis : bool;
+  ast_dump : bool;
 }
 
 let input_format_of_string = function
@@ -120,14 +121,18 @@ let pipeline_analysis =
   let doc = "Show pipeline performance analysis including timing and memory usage for each processing stage. Useful for understanding performance characteristics and bottlenecks." in
   Arg.(value & flag & info ["pipeline-analysis"] ~doc)
 
+let ast_dump =
+  let doc = "Show parsed AST (Abstract Syntax Tree) instead of converting to S-expressions. Displays the internal representation with type information and position data. Useful for understanding how data is parsed and structured internally." in
+  Arg.(value & flag & info ["ast-dump"] ~doc)
+
 let config_term =
-  let combine input_file output_file input_format output_format _ compact streaming buffer_size show_progress config_file no_config validate fail_fast quiet verbose input_files pipeline_analysis =
+  let combine input_file output_file input_format output_format _ compact streaming buffer_size show_progress config_file no_config validate fail_fast quiet verbose input_files pipeline_analysis ast_dump =
     let formatting = 
       if compact then Ast.Compact else Ast.Pretty
     in
-    { input_file; output_file; input_format; output_format; formatting; streaming; buffer_size; show_progress; config_file; no_config; validate; fail_fast; quiet; verbose; input_files; pipeline_analysis }
+    { input_file; output_file; input_format; output_format; formatting; streaming; buffer_size; show_progress; config_file; no_config; validate; fail_fast; quiet; verbose; input_files; pipeline_analysis; ast_dump }
   in
-  Term.(const combine $ input_file $ output_file $ input_format $ output_format $ pretty $ compact $ streaming $ buffer_size $ show_progress $ config_file $ no_config $ validate $ fail_fast $ quiet $ verbose $ input_files $ pipeline_analysis)
+  Term.(const combine $ input_file $ output_file $ input_format $ output_format $ pretty $ compact $ streaming $ buffer_size $ show_progress $ config_file $ no_config $ validate $ fail_fast $ quiet $ verbose $ input_files $ pipeline_analysis $ ast_dump)
 
 let info =
   let doc = "Fast, streaming S-expression converter for JSON, YAML, and TOML" in
@@ -155,6 +160,9 @@ let info =
     `P "Performance analysis:";
     `Pre "  sx --pipeline-analysis data.json";
     `Pre "  sx --pipeline-analysis --streaming large-file.jsonl";
+    `P "AST inspection:";
+    `Pre "  sx --ast-dump config.yaml";
+    `Pre "  sx --ast-dump --from json data.json";
   ] in
   let exits = [
     Cmd.Exit.info ~doc:"on success" 0;

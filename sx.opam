@@ -5,7 +5,8 @@ synopsis: "Fast, streaming S-expression converter for JSON, YAML, and TOML"
 description: """
 sx is a command-line tool that converts structured data from JSON, YAML, and TOML 
 into Common Lisp or Scheme S-expressions. It features automatic format detection, 
-streaming processing for large files, batch validation, and configurable output formatting.
+streaming processing for large files, batch validation, configurable output formatting,
+pipeline performance analysis, and AST inspection capabilities.
 
 Key features:
 - Multi-format input support (JSON, YAML, TOML, JSON Lines)
@@ -13,6 +14,8 @@ Key features:
 - Batch processing and validation with comprehensive error reporting
 - TOML-based configuration system with hierarchical search
 - Format auto-detection by extension and content analysis
+- Pipeline profiling with timing and memory tracking
+- AST inspection for debugging and development
 - Production-ready with comprehensive testing
 
 Perfect for data pipelines, configuration processing, and integrating structured data 

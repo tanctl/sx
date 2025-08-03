@@ -7,6 +7,8 @@ A CLI tool to convert structured data (JSON, YAML, TOML) into Common Lisp / Sche
 - **Batch processing**: Process multiple files with validation and error reporting
 - **Configuration system**: TOML-based config files with sensible defaults
 - **Validation mode**: Check file validity without conversion
+- **Pipeline profiling**: Performance analysis with timing and memory tracking
+- **AST inspection**: View internal data representation for debugging
 
 ## Quick Start
 ```bash
@@ -25,6 +27,14 @@ sx --validate *.json *.yaml
 # Stream large JSON files
 sx --streaming large_data.jsonl
 # Processes line-by-line with constant memory usage
+
+# Analyze pipeline performance
+sx --pipeline-analysis data.json
+# Shows timing and memory usage for each stage
+
+# Inspect internal data structure
+sx --ast-dump config.yaml
+# Displays parsed AST with type information
 ``` 
 
 ## Installation
@@ -140,6 +150,8 @@ OUTPUT_FILE Output file (positional, default: stdout)
 -c, --compact Compact output on single line
 --config FILE Configuration file
 --no-config Skip configuration files
+--pipeline-analysis Show performance analysis with timing and memory usage
+--ast-dump Show parsed AST instead of converting to S-expressions
 -q, --quiet Suppress non-error output
 -v, --verbose Show detailed processing information
 --version Show version information
@@ -462,6 +474,60 @@ find data/ -name "*.json" | head -100 | xargs sx --validate
 find data/ -name "*.json" | tail -n +101 | head -100 | xargs sx --validate
 ```
 
+### Pipeline Performance Analysis
+Analyze processing performance with detailed timing and memory tracking:
+```bash
+# Basic performance analysis
+sx --pipeline-analysis data.json
+# Output:
+# Pipeline Analysis:
+# Parse    |  15ms  | 2.1MB
+# Generate |   3ms  | 0.2MB  
+# Total    |  18ms  | 2.3MB
+
+# Combine with other features
+sx --pipeline-analysis --to scheme config.yaml
+sx --pipeline-analysis --streaming large-file.jsonl
+
+# Performance analysis with file processing
+sx --pipeline-analysis --from yaml deployment.yaml > output.lisp
+```
+
+**Use Cases:**
+- **Performance optimization**: Identify bottlenecks in parsing vs generation
+- **Memory profiling**: Track memory usage for different input types
+- **Benchmark comparison**: Compare performance across formats and configurations
+- **Production monitoring**: Understand processing characteristics
+
+### AST Structure Inspection
+View internal data representation for debugging and understanding:
+```bash
+# Inspect JSON structure
+sx --ast-dump data.json
+# Output:
+# Assoc
+# ├─ "name" -> String("Alice")
+# ├─ "age" -> Int(30)
+# └─ "settings" -> Assoc
+#   ├─ "theme" -> String("dark")
+#   └─ "notifications" -> Bool(true)
+
+# Inspect YAML with explicit format
+sx --ast-dump --from yaml config.yaml
+
+# Inspect TOML configuration  
+sx --ast-dump server.toml
+
+# Debug complex nested structures
+sx --ast-dump kubernetes-deployment.yaml
+```
+
+**Use Cases:**
+- **Data structure debugging**: Understand how complex data is parsed
+- **Format validation**: Verify parsing results for different input formats
+- **Schema development**: Design validation schemas based on actual structure
+- **Educational**: Learn about internal data representation
+
 ## Performance
 - **Streaming mode**: Constant memory usage for files of any size
 - **Format detection**: Fast content-based detection with fallback to extensions
@@ -526,6 +592,8 @@ sx is built as a modular OCaml application using a functional programming approa
 - `config.ml` - Configuration file parsing and management
 - `error.ml` - Error handling and validation reporting
 - `position.ml` - Source position tracking for error reporting
+- `profiler.ml` - Pipeline performance analysis and timing
+- `inspector.ml` - AST inspection and debugging utilities
 
 **`lib/parsers/`** - Input Format Parsers
 - `json.ml` - JSON parsing with Yojson integration and streaming support
@@ -780,5 +848,7 @@ sx is designed for common use cases with reasonable trade-offs:
 - **Error recovery**: Stops on first parse error (fail-fast approach)
 - **Output formats**: Limited to two S-expression styles (Common Lisp, Scheme)
 - **Streaming**: Works best with JSON Lines format; other formats processed sequentially
+## Related Writing 
+[Transformation Pipelines Across Domains: Patterns in Circuit Compilation and Data Processing](https://tanya.rs/blog/transformation-pipelines.html)
 ## License
 GPL v3 - see LICENSE file for details.

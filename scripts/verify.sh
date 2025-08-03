@@ -84,30 +84,30 @@ echo
 echo -e "${BLUE}=== Format Detection Tests ===${NC}"
 
 # Create test files if they don't exist
-mkdir -p test-data
+mkdir -p examples
 
 # Test YAML detection and conversion
 info "Testing YAML detection and conversion..."
-if [[ -f "test-data/config.yaml" ]]; then
-    if dune exec bin/main.exe -- test-data/config.yaml >/dev/null 2>&1; then
+if [[ -f "examples/config.yaml" ]]; then
+    if dune exec bin/main.exe -- examples/config.yaml >/dev/null 2>&1; then
         pass_test "YAML file processing works"
     else
         fail_test "YAML file processing failed"
     fi
 else
-    warn "test-data/config.yaml not found, skipping YAML test"
+    warn "examples/config.yaml not found, skipping YAML test"
 fi
 
 # Test TOML detection and conversion
 info "Testing TOML detection and conversion..."
-if [[ -f "test-data/server-config.toml" ]]; then
-    if dune exec bin/main.exe -- --from toml test-data/server-config.toml >/dev/null 2>&1; then
+if [[ -f "examples/server-config.toml" ]]; then
+    if dune exec bin/main.exe -- --from toml examples/server-config.toml >/dev/null 2>&1; then
         pass_test "TOML file processing works"
     else
         fail_test "TOML file processing failed"
     fi
 else
-    warn "test-data/server-config.toml not found, skipping TOML test"
+    warn "examples/server-config.toml not found, skipping TOML test"
 fi
 echo
 
@@ -115,15 +115,15 @@ echo
 echo -e "${BLUE}=== Streaming Tests ===${NC}"
 
 info "Testing JSON Lines streaming..."
-if [[ -f "test-data/logs.jsonl" ]]; then
-    RESULT=$(dune exec bin/main.exe -- --streaming --from jsonl test-data/logs.jsonl 2>/dev/null | wc -l)
+if [[ -f "examples/logs.jsonl" ]]; then
+    RESULT=$(dune exec bin/main.exe -- --streaming --from jsonl examples/logs.jsonl 2>/dev/null | wc -l)
     if [[ "$RESULT" -gt 5 ]]; then
         pass_test "JSON Lines streaming produces output"
     else
         fail_test "JSON Lines streaming failed"
     fi
 else
-    warn "test-data/logs.jsonl not found, skipping streaming test"
+    warn "examples/logs.jsonl not found, skipping streaming test"
 fi
 
 info "Testing streaming with pipes..."
@@ -266,15 +266,15 @@ else
 fi
 
 info "Testing with real-world-like data..."
-if [[ -f "test-data/package.json" ]]; then
-    PKG_RESULT=$(dune exec bin/main.exe -- test-data/package.json 2>/dev/null | head -5)
+if [[ -f "examples/package.json" ]]; then
+    PKG_RESULT=$(dune exec bin/main.exe -- examples/package.json 2>/dev/null | head -5)
     if [[ "$PKG_RESULT" == *'"name"'* ]]; then
         pass_test "Real-world package.json processing works"
     else
         fail_test "Real-world package.json processing failed"
     fi
 else
-    warn "test-data/package.json not found, skipping real-world test"
+    warn "examples/package.json not found, skipping real-world test"
 fi
 echo
 
